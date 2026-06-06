@@ -1,0 +1,7 @@
+fastapi>=0.110.0
+uvicorn>=0.29.0
+openai>=1.30.0
+pydantic>=2.0.0
+
+# Optional — only needed if you switch to LLM_PROVIDER=anthropic
+# anthropic>=0.25.0
