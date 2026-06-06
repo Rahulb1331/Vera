@@ -25,22 +25,29 @@ LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "deepseek").lower()
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 DEEPSEEK_API_KEY  = os.environ.get("DEEPSEEK_API_KEY", "")
-
+GROQ_API_KEY      = os.environ.get("GROQ_API_KEY", "")
+ 
 START_TIME = time.time()
 app = FastAPI(title="Vera Bot")
-
+ 
 # --- Build the right client depending on provider ---
 if LLM_PROVIDER == "anthropic" and ANTHROPIC_API_KEY:
     import anthropic as _anthropic
     client_llm  = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     MODEL       = "claude-sonnet-4-20250514"
     print(f"[LLM] Using Anthropic — {MODEL}")
-
+ 
 elif LLM_PROVIDER == "deepseek" and DEEPSEEK_API_KEY:
     from openai import OpenAI as _OpenAI
     client_llm  = _OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
     MODEL       = "deepseek-chat"
     print(f"[LLM] Using DeepSeek — {MODEL}")
+ 
+elif LLM_PROVIDER == "groq" and GROQ_API_KEY:
+    from openai import OpenAI as _OpenAI
+    client_llm  = _OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+    MODEL       = "llama-3.3-70b-versatile"
+    print(f"[LLM] Using Groq — {MODEL}")
 
 else:
     client_llm  = None
