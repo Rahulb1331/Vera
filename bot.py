@@ -615,8 +615,10 @@ async def reply(body: ReplyBody):
 
     # 2. Auto-reply detection (count AFTER appending current turn)
     if detect_auto_reply(message):
-        auto_reply_counts[conv_id] = auto_reply_counts.get(conv_id, 0) + 1
-        count = auto_reply_counts[conv_id]
+        # Use merchant_id as key since simulator creates new conv_id each turn
+        count_key = merchant_id or conv_id
+        auto_reply_counts[count_key] = auto_reply_counts.get(count_key, 0) + 1
+        count = auto_reply_counts[count_key]
     
         if count >= 3:
             ended_conversations.add(conv_id)
@@ -638,7 +640,8 @@ async def reply(body: ReplyBody):
                 "body": nudge,
                 "cta": "binary_yes_no",
                 "rationale": "First auto-reply detected. Sending nudge for when owner returns.",
-            }    
+            }   
+
     # 3. Intent commitment — switch to action mode
     if detect_intent_commit(message):
         merchant      = get_context("merchant", merchant_id) or {}
