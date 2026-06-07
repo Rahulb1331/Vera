@@ -694,6 +694,11 @@ async def reply(body: ReplyBody):
     conv = conversations.get(conv_id, {})
     print(f"[REPLY] existing turns={len(conv.get('turns', []))}")
 
+@app.post("/v1/reply")
+async def reply(body: ReplyBody):
+    conv_id = body.conversation_id
+    print(f"[DEBUG] conv_id={conv_id} | auto_reply_counts={auto_reply_counts}")
+
 @app.post("/v1/teardown")
 async def teardown():
     contexts.clear()
