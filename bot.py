@@ -614,44 +614,30 @@ async def reply(body: ReplyBody):
 
     # 2. Auto-reply detection (count AFTER appending current turn)
     if detect_auto_reply(message):
-
-        auto_count = sum(
-            1 for t in conv["turns"]
-            if t.get("role") == "merchant" and detect_auto_reply(t.get("body", ""))
-        )
-        if auto_count >= 3:
+        auto_reply_counts[conv_id] = auto_reply_counts.get(conv_id, 0) + 1
+        count = auto_reply_counts[conv_id]
+    
+        if count >= 3:
             ended_conversations.add(conv_id)
             return {
                 "action": "end",
-                "rationale": f"Auto-reply detected {auto_count}x in a row — owner not at phone. Closing conversation.",
+                "rationale": f"Auto-reply detected {count}x — owner not at phone. Closing conversation.",
             }
-        elif auto_count == 2:
+        elif count == 2:
             return {
                 "action": "wait",
                 "wait_seconds": 86400,
-                "rationale": "Same auto-reply twice — owner not available. Waiting 24h before retry.",
+                "rationale": "Auto-reply twice — waiting 24h before retry.",
             }
         else:
-            # Only send nudge once — check if already sent
-            already_nudged = any(
-                t.get("role") == "vera" and "auto-reply" in t.get("body", "").lower()
-                for t in conv["turns"]
-            )
-            if already_nudged:
-                return {
-                    "action": "wait",
-                    "wait_seconds": 14400,
-                    "rationale": "Auto-reply detected again — nudge already sent. Backing off 4h.",
-                }
             nudge = "Looks like an auto-reply 😊 When you see this, just reply 'Yes' to continue."
             conv["turns"].append({"role": "vera", "body": nudge})
             return {
                 "action": "send",
                 "body": nudge,
                 "cta": "binary_yes_no",
-                "rationale": "First auto-reply detected. Sending visible nudge for when owner returns.",
-            }
-    
+                "rationale": "First auto-reply detected. Sending nudge for when owner returns.",
+            }    
     # 3. Intent commitment — switch to action mode
     if detect_intent_commit(message):
         merchant      = get_context("merchant", merchant_id) or {}
