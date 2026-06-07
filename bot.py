@@ -700,6 +700,12 @@ async def reply(body: ReplyBody):
 
     return result
 
+@app.post("/v1/reply")
+async def reply(body: ReplyBody):
+    conv_id     = body.conversation_id
+    print(f"[REPLY] conv_id={conv_id} turn={body.turn_number} msg={body.message[:40]}")
+    conv = conversations.get(conv_id, {})
+    print(f"[REPLY] existing turns={len(conv.get('turns', []))}")
 
 @app.post("/v1/teardown")
 async def teardown():
