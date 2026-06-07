@@ -632,16 +632,26 @@ async def reply(body: ReplyBody):
                 "rationale": "Same auto-reply twice — owner not available. Waiting 24h before retry.",
             }
         else:
-            # First auto-reply: send a nudge so the owner sees it, then wait
+            # Only send nudge once — check if already sent
+            already_nudged = any(
+                t.get("role") == "vera" and "auto-reply" in t.get("body", "").lower()
+                for t in conv["turns"]
+            )
+            if already_nudged:
+                return {
+                    "action": "wait",
+                    "wait_seconds": 14400,
+                    "rationale": "Auto-reply detected again — nudge already sent. Backing off 4h.",
+                }
             nudge = "Looks like an auto-reply 😊 When you see this, just reply 'Yes' to continue."
             conv["turns"].append({"role": "vera", "body": nudge})
             return {
                 "action": "send",
                 "body": nudge,
                 "cta": "binary_yes_no",
-                "rationale": "Detected first auto-reply. Sending a visible nudge for when the owner returns, then backing off.",
+                "rationale": "First auto-reply detected. Sending visible nudge for when owner returns.",
             }
-
+    
     # 3. Intent commitment — switch to action mode
     if detect_intent_commit(message):
         merchant      = get_context("merchant", merchant_id) or {}
