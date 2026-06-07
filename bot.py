@@ -591,6 +591,7 @@ async def reply(body: ReplyBody):
 
     # 2. Auto-reply detection
     if detect_auto_reply(message):
+        conv["turns"].append({"role": "merchant", "body": message, "turn": turn})
         # Count auto-replies in this conversation
         auto_count = sum(
             1 for t in conv["turns"]
