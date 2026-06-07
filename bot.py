@@ -59,6 +59,7 @@ contexts: dict[tuple[str, str], dict] = {}
 conversations: dict[str, dict] = {}
 suppressed_keys: set[str] = set()
 ended_conversations: set[str] = set()
+auto_reply_counts: dict[str, int] = {}
 
 # ==============================================================================
 # HELPERS
