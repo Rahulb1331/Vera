@@ -13,7 +13,8 @@ from typing import Any, Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 # ==============================================================================
 # CONFIG
 # ==============================================================================
