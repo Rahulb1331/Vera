@@ -596,13 +596,13 @@ async def reply(body: ReplyBody):
             1 for t in conv["turns"]
             if t.get("role") == "merchant" and detect_auto_reply(t.get("body", ""))
         )
-        if auto_count >= 3:
+        if auto_count >= 2:
             ended_conversations.add(conv_id)
             return {
                 "action": "end",
                 "rationale": f"Auto-reply detected {auto_count}× — owner not at phone. Closing conversation.",
             }
-        elif auto_count == 2:
+        elif auto_count == 1:
             return {
                 "action": "wait",
                 "wait_seconds": 86400,
