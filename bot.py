@@ -172,7 +172,9 @@ HARD RULES:
 7. Keep body under 300 chars for simple nudges, up to 500 for complex messages
 8. No preamble like "I hope you're doing well"
 9. For customer-facing messages (recall, winback), set send_as = "merchant_on_behalf"
-10. Use owner_first_name or Dr. {first_name} — never generic "Dear Merchant"
+10. Address dentists as "Dr. {first_name}" always — never just first name
+11. Address salon/restaurant/gym/pharmacy owners by first name only
+12. Never use "Dear Merchant", "Hi there", or generic openers
 """
 
 
@@ -222,7 +224,7 @@ Trend signals: {json.dumps(category.get('trend_signals', [])[:3])}
 
 === MERCHANT ===
 Name: {m_id.get('name')}
-Owner first name: {m_id.get('owner_first_name')}
+Owner address: {"Dr. " + m_id.get('owner_first_name') if cat_slug == "dentists" else m_id.get('owner_first_name')}
 City/Locality: {m_id.get('city')}, {m_id.get('locality')}
 Languages: {m_id.get('languages')}
 Subscription: {merchant.get('subscription', {}).get('status')}, {merchant.get('subscription', {}).get('plan')}, {merchant.get('subscription', {}).get('days_remaining')} days left
