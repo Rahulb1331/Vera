@@ -422,57 +422,68 @@ What should Vera do next? Apply the decision rules in order."""
 
 def process_tick(available_trigger_ids: list[str]) -> list[dict]:
     actions = []
-
+    
+    # Filter valid triggers first (no LLM calls yet)
+    valid = []
     for trigger_id in available_trigger_ids:
-        if len(actions) >= 20: # max actions per tick
+        if len(valid) >= 20:
             break
-
         trigger = get_context("trigger", trigger_id)
         if not trigger:
             continue
-
         sup_key = trigger.get("suppression_key", "")
         if sup_key and sup_key in suppressed_keys:
             continue
-
         merchant_id = trigger.get("merchant_id")
-        customer_id = trigger.get("customer_id")
         if not merchant_id:
             continue
-
         merchant = get_context("merchant", merchant_id)
         if not merchant:
             continue
-
         cat_slug = merchant.get("category_slug")
         category = get_context("category", cat_slug)
         if not category:
             continue
-
+        customer_id = trigger.get("customer_id")
         customer = get_context("customer", customer_id) if customer_id else None
-
-        # Meaningful conversation ID
         conv_id = make_conv_id(merchant_id, trigger)
         if conv_id in ended_conversations:
             continue
+        valid.append((trigger_id, trigger, merchant, category, customer, conv_id))
 
-        composed = compose_message(category, merchant, trigger, customer)
+    # Compose all messages in parallel
+    def compose_one(args):
+        trigger_id, trigger, merchant, category, customer, conv_id = args
+        try:
+            return (trigger_id, trigger, merchant, category, customer, conv_id,
+                    compose_message(category, merchant, trigger, customer))
+        except Exception as e:
+            print(f"[TICK ERROR] {trigger_id}: {e}")
+            return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(compose_one, valid))
+
+    # Collect results
+    for result in results:
+        if not result:
+            continue
+        trigger_id, trigger, merchant, category, customer, conv_id, composed = result
+        merchant_id = trigger.get("merchant_id")
+        customer_id = trigger.get("customer_id")
 
         body = composed.get("body", "").strip()
         if not body:
             continue
 
-        # Anti-repetition
         existing_turns = conversations.get(conv_id, {}).get("turns", [])
         if any(t.get("body") == body and t.get("role") == "vera" for t in existing_turns):
             continue
 
-        # Record suppression
-        final_sup = composed.get("suppression_key") or sup_key
+        final_sup = composed.get("suppression_key") or trigger.get("suppression_key", "")
         if final_sup:
             suppressed_keys.add(final_sup)
 
-        # Store conversation turn
         if conv_id not in conversations:
             conversations[conv_id] = {
                 "merchant_id": merchant_id,
@@ -482,9 +493,9 @@ def process_tick(available_trigger_ids: list[str]) -> list[dict]:
             }
         conversations[conv_id]["turns"].append({"role": "vera", "body": body})
 
+        cat_slug = merchant.get("category_slug", "")
         kind = trigger.get("kind", "generic")
         send_as = composed.get("send_as", "vera")
-        template_name = f"merchant_recall_reminder_v1" if send_as == "merchant_on_behalf" else f"vera_{kind}_v1"
 
         actions.append({
             "conversation_id": conv_id,
@@ -492,12 +503,8 @@ def process_tick(available_trigger_ids: list[str]) -> list[dict]:
             "customer_id": customer_id,
             "send_as": send_as,
             "trigger_id": trigger_id,
-            "template_name": template_name,
-            "template_params": [
-                owner_address(merchant, cat_slug),
-                kind.replace("_", " "),
-                body[:100],
-            ],
+            "template_name": f"merchant_recall_reminder_v1" if send_as == "merchant_on_behalf" else f"vera_{kind}_v1",
+            "template_params": [owner_address(merchant, cat_slug), kind.replace("_", " "), body[:100]],
             "body": body,
             "cta": composed.get("cta", "open_ended"),
             "suppression_key": final_sup,
@@ -505,7 +512,6 @@ def process_tick(available_trigger_ids: list[str]) -> list[dict]:
         })
 
     return actions
-
 
 # ==============================================================================
 # ENDPOINTS
